@@ -4,20 +4,28 @@
 #include "bitfile.h"
 
 namespace py = pybind11;
+using namespace pybind11::literals;
 
 static void mem_dump(const void* ptr, int size);
 
 template<typename TSIZE>
 void skip_boundary(const char* &buf, TSIZE &size);
 
-void dump(const std::string& str) {
+py::dict dump(const std::string& str) {
 	BitFile bitFile;
 	auto data = str.data();
 	auto size = str.size();
 	skip_boundary(data, size);	
 	std::cout << "Read bitstream from buffer" << std::endl;
 	bitFile.readBuff(data, size);
-	bitFile.print();
+	// bitFile.print();
+	return py::dict{
+		"NCDFilename"_a = bitFile.getNCDFilename(),
+		"device"_a = bitFile.getPartName(),
+		"date"_a = bitFile.getDate(),
+		"time"_a = bitFile.getTime(),
+		"length"_a = bitFile.getLength(),
+	};
 }
 PYBIND11_MODULE(XilinxUpload, m) {
 	m.doc() = "pybind11 example plugin"; // optional module docstring

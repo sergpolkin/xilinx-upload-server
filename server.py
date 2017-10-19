@@ -13,19 +13,15 @@ class HttpProc(BaseHTTPRequestHandler):
             self.send_header('Location','/')
             self.end_headers()
             return
-        f = None
-        try:
-            f = open("static/index.html", "rb")
-        except IOError:
+        index = self.get_static_file("index.html")
+        if not index:
             self.send_error(404, "Can't read index.html")
             return
         self.send_response(200)
         self.send_header('Content-Type', 'text/html')
-        fs = os.fstat(f.fileno())
-        self.send_header("Content-Length", str(fs[6]))
+        self.send_header("Content-Length", len(index))
         self.end_headers()
-        shutil.copyfileobj(f, self.wfile)
-        f.close()
+        self.wfile.write(index)
 
     def do_POST(self):
         # check boundary
@@ -35,20 +31,38 @@ class HttpProc(BaseHTTPRequestHandler):
             return
         # get content size
         size = int(self.headers['content-length'])
+        # upload bitstream
+        upload_result = None
         with open("bitstream.dump", "wb") as bitstream:
             data = self.rfile.read(size)
             bitstream.write(data)
-            XilinxUpload.dump(data)
+            upload_result = XilinxUpload.dump(data)
+        if not upload_result:
+            self.send_error(404, "XilinxUpload error")
+            return
         # send result
+        result = self.get_static_file("result.html")
+        if not result:
+            self.send_error(404, "Can't read result.html")
+            return
+        result = result % (
+                upload_result['NCDFilename'],
+                upload_result['device'],
+                upload_result['date'],
+                upload_result['time'],
+                upload_result['length'],
+                self.headers['referer'])
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", len(result))
         self.end_headers()
-        f = self.wfile
-        f.write("<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 3.2 Final//EN\">")
-        f.write("<html>\n<title>Upload Result Page</title>\n")
-        f.write("<body>\n<p>Upload size: %d</p>\n" % size)
-        f.write("<br><a href=\"%s\">back</a>" % self.headers['referer'])
-        f.write("</body>\n</html>\n")
+        self.wfile.write(result)
+
+    def get_static_file(self, name):
+        content = None
+        with open("static/" + name, "r") as f:
+            content = f.read()
+        return content
 
 if __name__ == '__main__':
     addr = ("0.0.0.0", 3000)

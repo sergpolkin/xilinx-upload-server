@@ -4,14 +4,18 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import os
 import shutil
-
-__bitstream_size__ = 22465
+import XilinxUpload
 
 class HttpProc(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path != "/":
+            self.send_response(301)
+            self.send_header('Location','/')
+            self.end_headers()
+            return
         f = None
         try:
-            f = open("index.html", "rb")
+            f = open("static/index.html", "rb")
         except IOError:
             self.send_error(404, "Can't read index.html")
             return
@@ -26,21 +30,15 @@ class HttpProc(BaseHTTPRequestHandler):
     def do_POST(self):
         # check boundary
         boundary = self.headers.plisttext.split("=")[1]
-        if not boundary in self.rfile.readline():
+        if not boundary:
             self.send_error(404, "Content NOT begin with boundary")
             return
-        # check content size
+        # get content size
         size = int(self.headers['content-length'])
-        if size < __bitstream_size__:
-            self.send_error(404, "Content NOT valid size")
-            return
-        # dump content
-        self.rfile.readline() # read Content-Disposition
-        self.rfile.readline() # read Content-Type
-        self.rfile.readline() # read new line
         with open("bitstream.dump", "wb") as bitstream:
-            bitstream.write(self.rfile.read(__bitstream_size__))
-            size = bitstream.tell()
+            data = self.rfile.read(size)
+            bitstream.write(data)
+            XilinxUpload.dump(data)
         # send result
         self.send_response(200)
         self.send_header("Content-Type", "text/html")

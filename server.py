@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
-import os
-import shutil
+from string import Template
 import XilinxUpload
 
 class HttpProc(BaseHTTPRequestHandler):
@@ -45,13 +44,13 @@ class HttpProc(BaseHTTPRequestHandler):
         if not result:
             self.send_error(404, "Can't read result.html")
             return
-        result = result % (
-                upload_result['NCDFilename'],
-                upload_result['device'],
-                upload_result['date'],
-                upload_result['time'],
-                upload_result['length'],
-                self.headers['referer'])
+        result = Template(result).substitute(
+                filename = upload_result['NCDFilename'],
+                device = upload_result['device'],
+                date = upload_result['date'],
+                time = upload_result['time'],
+                length = upload_result['length'],
+                referer = self.headers['referer'])
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.send_header("Content-Length", len(result))

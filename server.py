@@ -31,11 +31,7 @@ class HttpProc(BaseHTTPRequestHandler):
         # get content size
         size = int(self.headers['content-length'])
         # upload bitstream
-        upload_result = None
-        with open("bitstream.dump", "wb") as bitstream:
-            data = self.rfile.read(size)
-            bitstream.write(data)
-            upload_result = XilinxUpload.dump(data)
+        upload_result = XilinxUpload.dump(self.rfile.read(size))
         if not upload_result:
             self.send_error(404, "XilinxUpload error")
             return

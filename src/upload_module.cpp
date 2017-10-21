@@ -7,6 +7,7 @@ namespace py = pybind11;
 using namespace pybind11::literals;
 
 static void mem_dump(const void* ptr, int size);
+static void dump_to_file(const void* ptr, int size);
 
 template<typename TSIZE>
 void skip_boundary(const char* &buf, TSIZE &size);
@@ -17,7 +18,8 @@ py::dict dump(const std::string& str) {
 	auto size = str.size();
 	skip_boundary(data, size);	
 	std::cout << "Read bitstream from buffer" << std::endl;
-	bitFile.readBuff(data, size);
+	bitFile.readBuff(data, size, false);
+	dump_to_file(bitFile.getData(), bitFile.getLength() / 8);
 	// bitFile.print();
 	return py::dict{
 		"NCDFilename"_a = bitFile.getNCDFilename(),
@@ -38,6 +40,15 @@ void mem_dump(const void* ptr, int size) {
 	}
 	printf("\n");
 }
+void dump_to_file(const void* ptr, int size) {
+	FILE* fd;
+	if(!(fd = fopen("bitstream.dump", "wb"))) {
+		return;
+	}
+	fwrite(ptr, size, 1, fd);
+	fclose(fd);
+}
+
 template<typename TSIZE>
 void skip_boundary(const char* &buf, TSIZE &size) {
 	TSIZE len = 0;

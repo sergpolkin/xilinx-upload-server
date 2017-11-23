@@ -14,8 +14,10 @@ bool Uploader::upload(const std::string& portName,
 	const void* data, uint32_t size)
 {
 	if(!initPort(portName)) return false;
-	if(!reset()) return false;
-	return send(data, size);
+	bool r;
+	if((r = reset()) == true) r = send(data, size);
+	port.close();
+	return r;
 }
 //---------------------------------------------------------------------------
 bool Uploader::send(const void* data, uint32_t size) {

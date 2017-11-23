@@ -1,9 +1,15 @@
 #!/usr/bin/env python2
 # -*- coding: utf-8 -*-
 
+from sys import platform
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from string import Template
 import XilinxUpload
+
+if platform == "win32":
+    portName = "FTDIBUS\\COMPORT&VID_0403&PID_6001"
+else:
+    portName = "USB VID:PID=0403:6001"
 
 class HttpProc(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -31,7 +37,7 @@ class HttpProc(BaseHTTPRequestHandler):
         # get content size
         size = int(self.headers['content-length'])
         # upload bitstream
-        upload_result = XilinxUpload.dump(self.rfile.read(size))
+        upload_result = XilinxUpload.upload(portName, self.rfile.read(size))
         if not upload_result:
             self.send_error(404, "XilinxUpload error")
             return
@@ -60,8 +66,7 @@ class HttpProc(BaseHTTPRequestHandler):
         return content
 
 if __name__ == '__main__':
-    addr = ("0.0.0.0", 3000)
+    addr = ("127.0.0.1", 3000)
     print "Server running on", addr
     serv = HTTPServer(addr, HttpProc)
     serv.serve_forever()
-
